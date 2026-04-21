@@ -55,7 +55,7 @@ const Icon = {
 const services: Service[] = [
   {
     n: '01',
-    title: 'AI & Agentic AI',
+    title: 'AI, Generative AI & Agentic AI',
     desc: 'Autonomous agents, content generation, and decision-making systems that operate at enterprise scale.',
     bullets: ['LLM integration', 'Workflow agents', 'RAG pipelines'],
     tint: 'rgba(106, 167, 255, 0.22)',

@@ -85,7 +85,8 @@ const BlurText: React.FC<BlurTextProps> = ({
     };
   }, [text, delay, direction, duration, startDelay, scrollTrigger, elements.length]);
 
-  const Wrapper = as as React.ElementType;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const Wrapper = as as any;
 
   return (
     <Wrapper ref={ref as React.RefObject<HTMLElement>} className={className} style={{ display: 'inline' }}>

@@ -1,4 +1,8 @@
-import { useRef, useCallback, useState, useEffect, type ReactNode } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useCallback, useState, useEffect, type ReactNode } from 'react';
+
+export interface BorderGlowHandle {
+  sweep: () => void;
+}
 
 interface BorderGlowProps {
   children?: ReactNode;
@@ -68,7 +72,7 @@ function buildMeshGradients(colors: string[]): string[] {
   return gradients;
 }
 
-const BorderGlow: React.FC<BorderGlowProps> = ({
+const BorderGlow = forwardRef<BorderGlowHandle, BorderGlowProps>(({
   children,
   className = '',
   edgeSensitivity = 30,
@@ -81,12 +85,31 @@ const BorderGlow: React.FC<BorderGlowProps> = ({
   animated = false,
   colors = ['#6aa7ff', '#a78bfa', '#22d3ee'],
   fillOpacity = 0.5,
-}) => {
+}, forwardedRef) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [cursorAngle, setCursorAngle] = useState(45);
   const [edgeProximity, setEdgeProximity] = useState(0);
   const [sweepActive, setSweepActive] = useState(false);
+
+  const runSweep = useCallback(() => {
+    const angleStart = 110, angleEnd = 465;
+    setSweepActive(true);
+    setCursorAngle(angleStart);
+    animateValue({ duration: 500, onUpdate: v => setEdgeProximity(v / 100) });
+    animateValue({ ease: easeInCubic, duration: 1500, end: 50, onUpdate: v => {
+      setCursorAngle((angleEnd - angleStart) * (v / 100) + angleStart);
+    }});
+    animateValue({ ease: easeOutCubic, delay: 1500, duration: 2250, start: 50, end: 100, onUpdate: v => {
+      setCursorAngle((angleEnd - angleStart) * (v / 100) + angleStart);
+    }});
+    animateValue({ ease: easeInCubic, delay: 2500, duration: 1500, start: 100, end: 0,
+      onUpdate: v => setEdgeProximity(v / 100),
+      onEnd: () => setSweepActive(false),
+    });
+  }, []);
+
+  useImperativeHandle(forwardedRef, () => ({ sweep: runSweep }), [runSweep]);
 
   const getCenterOfElement = useCallback((el: HTMLElement) => {
     const { width, height } = el.getBoundingClientRect();
@@ -122,21 +145,8 @@ const BorderGlow: React.FC<BorderGlowProps> = ({
 
   useEffect(() => {
     if (!animated) return;
-    const angleStart = 110, angleEnd = 465;
-    setSweepActive(true);
-    setCursorAngle(angleStart);
-    animateValue({ duration: 500, onUpdate: v => setEdgeProximity(v / 100) });
-    animateValue({ ease: easeInCubic, duration: 1500, end: 50, onUpdate: v => {
-      setCursorAngle((angleEnd - angleStart) * (v / 100) + angleStart);
-    }});
-    animateValue({ ease: easeOutCubic, delay: 1500, duration: 2250, start: 50, end: 100, onUpdate: v => {
-      setCursorAngle((angleEnd - angleStart) * (v / 100) + angleStart);
-    }});
-    animateValue({ ease: easeInCubic, delay: 2500, duration: 1500, start: 100, end: 0,
-      onUpdate: v => setEdgeProximity(v / 100),
-      onEnd: () => setSweepActive(false),
-    });
-  }, [animated]);
+    runSweep();
+  }, [animated, runSweep]);
 
   const colorSensitivity = edgeSensitivity + 20;
   const isVisible = isHovered || sweepActive;
@@ -222,6 +232,8 @@ const BorderGlow: React.FC<BorderGlowProps> = ({
       <div className="flex flex-col relative overflow-hidden z-[1] rounded-[inherit]">{children}</div>
     </div>
   );
-};
+});
+
+BorderGlow.displayName = 'BorderGlow';
 
 export default BorderGlow;

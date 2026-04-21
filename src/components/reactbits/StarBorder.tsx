@@ -18,7 +18,8 @@ const StarBorder = <T extends ElementType = 'button'>({
   children,
   ...rest
 }: StarBorderProps<T>) => {
-  const Component = as || 'button';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const Component = (as || 'button') as any;
   return (
     <Component
       className={`relative inline-block overflow-hidden rounded-full ${className}`}

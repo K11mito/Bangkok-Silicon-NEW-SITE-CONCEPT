@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import CardSwap, { Card } from '../reactbits/CardSwap';
+import CardSwap, { Card, type CardSwapHandle } from '../reactbits/CardSwap';
 
 type Industry = {
   tag: string;
@@ -53,6 +53,15 @@ const G = {
       <path d="M4 40h30v12H4zM34 30h14l8 10v12H34z" />
       <circle cx="14" cy="54" r="4" />
       <circle cx="46" cy="54" r="4" />
+    </svg>
+  ),
+  Trans: (
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full">
+      <rect x="12" y="10" width="40" height="34" rx="5" />
+      <path d="M12 28h40M22 18h6M36 18h6" />
+      <circle cx="22" cy="50" r="4" />
+      <circle cx="42" cy="50" r="4" />
+      <path d="M16 44l-4 8M48 44l4 8" strokeLinecap="round" />
     </svg>
   ),
 };
@@ -114,11 +123,21 @@ const industries: Industry[] = [
     gradient: 'linear-gradient(135deg, rgba(132,204,22,0.30), rgba(52,211,153,0.12) 40%, transparent 70%)',
     glyph: G.Ag,
   },
+  {
+    tag: 'Transportation',
+    title: 'Mobility & transit systems',
+    copy: 'Intelligent transit scheduling, fleet telematics, and passenger-experience platforms across ASEAN corridors.',
+    kpi: { value: '15%', label: 'on-time improvement' },
+    gradient: 'linear-gradient(135deg, rgba(96,165,250,0.32), rgba(132,204,22,0.12) 40%, transparent 70%)',
+    glyph: G.Trans,
+  },
 ];
 
 export default function Industries() {
   const rootRef = useRef<HTMLElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
+  const cardSwapRef = useRef<CardSwapHandle>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -140,7 +159,7 @@ export default function Industries() {
       </div>
 
       <div className="relative max-w-[1400px] mx-auto px-6 md:px-10">
-        <div className="grid lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-20 items-center min-h-[720px]">
+        <div className="grid lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-20 items-center lg:min-h-[720px]">
           {/* Left copy */}
           <div ref={copyRef}>
             <div className="flex items-center gap-2 mb-6">
@@ -152,21 +171,53 @@ export default function Industries() {
             </h2>
             <p className="text-[17px] leading-[1.55] text-white/55 max-w-[50ch] mb-10">
               From ministries to manufacturing floors, we deliver production-grade systems where regulation,
-              scale and real-world constraints meet. Seven industries. One team.
+              scale and real-world constraints meet. Eight industries. One team.
             </p>
             <div className="grid grid-cols-2 gap-3 max-w-[420px]">
-              {industries.map(i => (
-                <div key={i.tag} className="flex items-center gap-2 text-[13px] text-white/60 px-3 py-2 rounded-full border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#6aa7ff]" />
-                  <span>{i.tag}</span>
-                </div>
-              ))}
+              {industries.map((i, idx) => {
+                const active = idx === activeIdx;
+                return (
+                  <button
+                    key={i.tag}
+                    type="button"
+                    onClick={() => {
+                      setActiveIdx(idx);
+                      cardSwapRef.current?.goTo(idx);
+                    }}
+                    aria-pressed={active}
+                    className={[
+                      'flex items-center gap-2 text-[13px] px-3 py-2 rounded-full border transition text-left cursor-pointer',
+                      active
+                        ? 'text-white border-[#6aa7ff]/60 bg-[#6aa7ff]/[0.08] shadow-[0_0_0_1px_rgba(106,167,255,0.25)]'
+                        : 'text-white/60 border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 hover:text-white/85',
+                    ].join(' ')}
+                  >
+                    <span
+                      className={[
+                        'w-1.5 h-1.5 rounded-full transition',
+                        active ? 'bg-[#6aa7ff] shadow-[0_0_8px_rgba(106,167,255,0.8)]' : 'bg-[#6aa7ff]/60',
+                      ].join(' ')}
+                    />
+                    <span>{i.tag}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* CardSwap */}
-          <div className="relative h-[560px] lg:h-[600px]">
-            <CardSwap width={420} height={520} cardDistance={55} verticalDistance={62} delay={3800} pauseOnHover skewAmount={5}>
+          {/* CardSwap — hidden on the narrowest screens to avoid horizontal overflow; the tag grid conveys industries on mobile */}
+          <div className="relative hidden sm:block h-[560px] lg:h-[600px] overflow-hidden">
+            <CardSwap
+              ref={cardSwapRef}
+              width={420}
+              height={520}
+              cardDistance={55}
+              verticalDistance={62}
+              delay={3800}
+              pauseOnHover
+              skewAmount={5}
+              onFrontChange={setActiveIdx}
+            >
               {industries.map(i => (
                 <Card key={i.tag} customClass="overflow-hidden">
                   <div

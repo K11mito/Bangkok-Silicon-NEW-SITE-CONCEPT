@@ -1,23 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
-import BorderGlow from '../reactbits/BorderGlow';
+import { useEffect, useRef } from 'react';
+import BorderGlow, { type BorderGlowHandle } from '../reactbits/BorderGlow';
 
 const stats = [
   { value: '300+', label: 'Engineers & consultants' },
-  { value: '2', label: 'Countries · 3 offices' },
-  { value: '7', label: 'Industries served' },
+  { value: '2', label: 'Countries · Bangkok & Vietnam' },
+  { value: '8', label: 'Industries served' },
   { value: '24×7', label: 'SOC & support' },
 ];
 
-const capabilities = ['AI / ML', 'Agentic AI', 'Data Engineering', 'Business Intelligence', 'Blockchain', 'Cloud Native', 'Cybersecurity', 'Computer Vision'];
+const capabilities = ['AI / ML', 'Generative AI', 'Agentic AI', 'Data Engineering', 'Computer Vision', 'Cloud Native', 'Cybersecurity', 'Blockchain & IoT'];
 
 export default function About() {
   const rootRef = useRef<HTMLElement>(null);
   const numbersRef = useRef<HTMLDivElement>(null);
   const glowHostRef = useRef<HTMLDivElement>(null);
-  // Each time this key bumps, the BorderGlow remounts and replays its sweep.
-  const [glowKey, setGlowKey] = useState(0);
+  const glowRef = useRef<BorderGlowHandle>(null);
 
-  // Trigger the BorderGlow sweep when About is visible, then loop every 7s.
+  // Replay the BorderGlow sweep whenever the About section scrolls into view,
+  // and on a gentle 12s cadence while it remains visible (no remount, no React state churn).
   useEffect(() => {
     const el = glowHostRef.current;
     if (!el) return;
@@ -25,10 +25,10 @@ export default function About() {
     let timer: number | undefined;
     const startLoop = () => {
       if (timer) return;
-      setGlowKey((k) => k + 1);
+      glowRef.current?.sweep();
       timer = window.setInterval(() => {
-        if (visible) setGlowKey((k) => k + 1);
-      }, 7000);
+        if (visible) glowRef.current?.sweep();
+      }, 12000);
     };
     const stopLoop = () => {
       if (timer) window.clearInterval(timer);
@@ -130,7 +130,7 @@ export default function About() {
           {/* Soft ambient blur backdrop so the panel is never visually flat */}
           <div className="absolute -inset-6 rounded-[48px] bg-[radial-gradient(circle_at_30%_20%,rgba(106,167,255,0.12),transparent_60%),radial-gradient(circle_at_70%_80%,rgba(167,139,250,0.12),transparent_60%)] blur-2xl pointer-events-none" />
         <BorderGlow
-          key={glowKey}
+          ref={glowRef}
           borderRadius={32}
           glowColor="220 95 62"
           colors={['#6aa7ff', '#a78bfa', '#22d3ee']}

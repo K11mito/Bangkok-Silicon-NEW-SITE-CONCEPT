@@ -4,6 +4,7 @@ import {
   forwardRef,
   isValidElement,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   type ReactElement,
@@ -11,6 +12,13 @@ import {
   type RefObject,
 } from 'react';
 import gsap from 'gsap';
+
+export interface CardSwapHandle {
+  /** Bring the card at `index` to the front, animating all others into their new slots. */
+  goTo: (index: number) => void;
+  /** Index of the currently front-most card. */
+  getFrontIndex: () => number;
+}
 
 export interface CardSwapProps {
   width?: number | string;
@@ -20,6 +28,8 @@ export interface CardSwapProps {
   delay?: number;
   pauseOnHover?: boolean;
   onCardClick?: (idx: number) => void;
+  /** Fired whenever the front-most card changes (auto-swap or goTo). */
+  onFrontChange?: (idx: number) => void;
   skewAmount?: number;
   easing?: 'linear' | 'elastic';
   children: ReactNode;
@@ -66,7 +76,7 @@ const placeNow = (el: HTMLElement, slot: Slot, skew: number) =>
     force3D: true,
   });
 
-const CardSwap: React.FC<CardSwapProps> = ({
+const CardSwap = forwardRef<CardSwapHandle, CardSwapProps>(({
   width = 500,
   height = 400,
   cardDistance = 60,
@@ -74,10 +84,11 @@ const CardSwap: React.FC<CardSwapProps> = ({
   delay = 5000,
   pauseOnHover = false,
   onCardClick,
+  onFrontChange,
   skewAmount = 6,
   easing = 'elastic',
   children,
-}) => {
+}, forwardedRef) => {
   const config =
     easing === 'elastic'
       ? {
@@ -108,10 +119,16 @@ const CardSwap: React.FC<CardSwapProps> = ({
   const tlRef = useRef<gsap.core.Timeline | null>(null);
   const intervalRef = useRef<number>(0);
   const container = useRef<HTMLDivElement>(null);
+  const startIntervalRef = useRef<() => void>(() => {});
+  const stopIntervalRef = useRef<() => void>(() => {});
+  const onFrontChangeRef = useRef(onFrontChange);
+  useEffect(() => { onFrontChangeRef.current = onFrontChange; }, [onFrontChange]);
 
   useEffect(() => {
     const total = refs.length;
     refs.forEach((r, i) => r.current && placeNow(r.current, makeSlot(i, cardDistance, verticalDistance, total), skewAmount));
+    // Report the initial front card so consumers (e.g. active-tag highlight) can sync on mount.
+    onFrontChangeRef.current?.(order.current[0]);
 
     const swap = () => {
       if (order.current.length < 2) return;
@@ -136,34 +153,83 @@ const CardSwap: React.FC<CardSwapProps> = ({
       tl.to(elFront, { x: backSlot.x, y: backSlot.y, z: backSlot.z, duration: config.durReturn, ease: config.ease }, 'return');
       tl.call(() => {
         order.current = [...rest, front];
+        onFrontChangeRef.current?.(order.current[0]);
       });
     };
 
+    const startInterval = () => {
+      clearInterval(intervalRef.current);
+      intervalRef.current = window.setInterval(swap, delay);
+    };
+    const stopInterval = () => clearInterval(intervalRef.current);
+    startIntervalRef.current = startInterval;
+    stopIntervalRef.current = stopInterval;
+
     swap();
-    intervalRef.current = window.setInterval(swap, delay);
+    startInterval();
 
     if (pauseOnHover) {
       const node = container.current;
       if (!node) return;
       const pause = () => {
         tlRef.current?.pause();
-        clearInterval(intervalRef.current);
+        stopInterval();
       };
       const resume = () => {
         tlRef.current?.play();
-        intervalRef.current = window.setInterval(swap, delay);
+        startInterval();
       };
       node.addEventListener('mouseenter', pause);
       node.addEventListener('mouseleave', resume);
       return () => {
         node.removeEventListener('mouseenter', pause);
         node.removeEventListener('mouseleave', resume);
-        clearInterval(intervalRef.current);
+        stopInterval();
       };
     }
-    return () => clearInterval(intervalRef.current);
+    return () => stopInterval();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cardDistance, verticalDistance, delay, pauseOnHover, skewAmount, easing]);
+
+  useImperativeHandle(forwardedRef, () => ({
+    getFrontIndex: () => order.current[0],
+    goTo: (target: number) => {
+      if (target < 0 || target >= refs.length) return;
+      if (order.current[0] === target) return;
+
+      // Cancel in-flight swap + pause the auto-rotator so the user's choice isn't stolen.
+      tlRef.current?.kill();
+      stopIntervalRef.current();
+
+      // Rotate the order so `target` lands at slot 0; preserve the cyclic adjacency of the rest.
+      const cur = order.current;
+      const targetIdx = cur.indexOf(target);
+      const newOrder = [...cur.slice(targetIdx), ...cur.slice(0, targetIdx)];
+
+      const total = refs.length;
+      const tl = gsap.timeline({
+        onComplete: () => {
+          order.current = newOrder;
+          onFrontChangeRef.current?.(newOrder[0]);
+          // Resume auto-cycling from the new front.
+          startIntervalRef.current();
+        },
+      });
+      tlRef.current = tl;
+
+      newOrder.forEach((cardIdx, slotIdx) => {
+        const el = refs[cardIdx].current;
+        if (!el) return;
+        const slot = makeSlot(slotIdx, cardDistance, verticalDistance, total);
+        tl.set(el, { zIndex: slot.zIndex }, 0);
+        tl.to(
+          el,
+          { x: slot.x, y: slot.y, z: slot.z, duration: 0.75, ease: 'power3.out' },
+          slotIdx * 0.04,
+        );
+      });
+    },
+  }), [refs, cardDistance, verticalDistance]);
 
   const rendered = childArr.map((child, i) =>
     isValidElement<CardProps>(child)
@@ -188,6 +254,8 @@ const CardSwap: React.FC<CardSwapProps> = ({
       {rendered}
     </div>
   );
-};
+});
+
+CardSwap.displayName = 'CardSwap';
 
 export default CardSwap;

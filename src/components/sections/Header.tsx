@@ -4,8 +4,6 @@ const links = [
   { label: 'Services', href: '#services' },
   { label: 'Industries', href: '#industries' },
   { label: 'About', href: '#about' },
-  { label: 'Careers', href: '#careers' },
-  { label: 'Insight', href: '#insight' },
 ];
 
 const Logo = () => (
