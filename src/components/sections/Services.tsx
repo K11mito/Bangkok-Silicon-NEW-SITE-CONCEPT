@@ -151,12 +151,12 @@ export default function Services() {
           {services.map(s => (
             <SpotlightCard
               key={s.n}
-              className="service-card p-7 md:p-8 h-[340px] flex flex-col justify-between group cursor-pointer hover:border-white/20 transition-colors"
+              className="service-card p-7 md:p-8 flex flex-col gap-5 group cursor-pointer hover:border-white/20 transition-colors"
               spotlightColor={s.tint as `rgba(${number}, ${number}, ${number}, ${number})`}
             >
               <div className="flex items-start justify-between">
-                <div className="w-10 h-10 text-white/80 group-hover:text-white transition-colors">{s.icon}</div>
-                <span className="mono text-[10px] tracking-[0.2em] text-white/30 mt-1">{s.n}</span>
+                <div className="w-14 h-14 text-white/80 group-hover:text-white transition-colors">{s.icon}</div>
+                <span className="mono text-[15px] tracking-[0.15em] text-white/50 mt-1">{s.n}</span>
               </div>
               <div>
                 <h3 className="text-[22px] md:text-[24px] font-medium tracking-tight text-white mb-3">{s.title}</h3>
