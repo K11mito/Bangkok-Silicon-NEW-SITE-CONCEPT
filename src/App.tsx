@@ -7,6 +7,7 @@ import Marquee from './components/sections/Marquee';
 import Services from './components/sections/Services';
 import Industries from './components/sections/Industries';
 import About from './components/sections/About';
+import Partners from './components/sections/Partners';
 import Contact from './components/sections/Contact';
 import Footer from './components/sections/Footer';
 import { installGsapSafety } from './lib/gsap-safety';
@@ -28,6 +29,7 @@ function App() {
         <Services />
         <Industries />
         <About />
+        <Partners />
         <Contact />
       </main>
       <Footer />
