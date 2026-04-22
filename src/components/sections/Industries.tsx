@@ -159,7 +159,7 @@ export default function Industries() {
       </div>
 
       <div className="relative max-w-[1400px] mx-auto px-6 md:px-10">
-        <div className="grid lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-20 items-center lg:min-h-[720px]">
+        <div className="grid lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-20 items-center">
           {/* Left copy */}
           <div ref={copyRef}>
             <div className="flex items-center gap-2 mb-6">
